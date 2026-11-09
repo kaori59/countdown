@@ -92,6 +92,8 @@ body.done .num{color:var(--c)}
 .sw{flex:1;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--bg);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;color:var(--sub)}
 .sw i{width:14px;height:14px;border-radius:50%}
 .sw[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
+.hint{margin:-8px 2px 18px;padding:12px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-size:12px;line-height:1.7;color:var(--sub)}
+body.full .hint{display:none}
 body.running .settings{opacity:.35;pointer-events:none}
 
 /* ---- full screen while counting ---- */
@@ -106,7 +108,6 @@ body.full.paused .num{opacity:.45}
 .menu.show{opacity:1;pointer-events:auto}
 .menu .row{display:flex;gap:10px;width:100%;max-width:440px}
 .menu .btn{height:62px}
-.menu .btn:disabled{opacity:.3}
 .menu .btn.end{color:var(--sub)}
 @media (orientation:landscape){
   .menu{align-items:center;justify-content:flex-end;padding:0 calc(env(safe-area-inset-right,0px) + 24px) 0 0;background:linear-gradient(to left,rgba(0,0,0,.75),rgba(0,0,0,0) 55%)}
@@ -139,6 +140,8 @@ body.full.paused .num{opacity:.45}
   <div class="ctrl">
     <button class="btn main" id="mainBtn">スタート</button>
   </div>
+
+  <p class="hint" id="iosHint" hidden>iPhone の Safari では下のURLのバーを消せません。共有ボタン →「ホーム画面に追加」から開くと、バーのない全画面になります。</p>
 
   <div class="settings">
     <div class="sec">
@@ -185,7 +188,7 @@ body.full.paused .num{opacity:.45}
 </main>
 <div class="menu" id="menu">
   <div class="row">
-    <button class="btn" id="mStop">ストップ</button>
+    <button class="btn main" id="mStop">ストップ</button>
     <button class="btn main" id="mResume">再開</button>
     <button class="btn end" id="mEnd">終了</button>
   </div>
@@ -268,7 +271,7 @@ let menuTimer;
 function showMenu(on){
   clearTimeout(menuTimer);
   $('menu').classList.toggle('show',on);
-  $('mStop').disabled=run.paused;$('mResume').disabled=!run.paused;
+  $('mStop').hidden=run.paused;$('mResume').hidden=!run.paused;
   if(on&&!run.paused)menuTimer=setTimeout(()=>showMenu(false),4000);
 }
 // one tap anywhere on the counting screen brings up the buttons
@@ -369,6 +372,8 @@ function finish(done){
 }
 $('mainBtn').onclick=e=>{e.stopPropagation();if(!run.on)start()};
 
+const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+if(isIOS&&!standalone)$('iosHint').hidden=false;
 syncAll();
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
