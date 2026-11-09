@@ -88,35 +88,30 @@ body.done .num{color:var(--c)}
 .note{font-size:12px;color:var(--sub);margin:7px 2px 0;line-height:1.6}
 .note.warn{color:var(--c)}
 .test{margin-top:6px;font-size:13px;color:var(--sub);text-decoration:underline;text-underline-offset:3px;padding:4px 2px}
-.snds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.snds button{padding:10px 6px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-weight:800;color:var(--sub)}
-.snds button small{display:block;font-weight:500;font-size:11px;opacity:.75}
-.snds button[aria-pressed=true]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--c)}
 .themes{display:flex;gap:10px}
 .sw{flex:1;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--bg);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;color:var(--sub)}
 .sw i{width:14px;height:14px;border-radius:50%}
 .sw[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
 body.running .settings{opacity:.35;pointer-events:none}
 
-/* ---- full screen ---- */
-body.full .settings,body.full .tag{display:none}
-body.full .wrap{max-width:none;height:100dvh;display:flex;flex-direction:column;padding-left:calc(env(safe-area-inset-left,0px) + 16px);padding-right:calc(env(safe-area-inset-right,0px) + 16px)}
-body.full .top{justify-content:flex-end}
-body.full .stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
-body.full .dial{width:min(92vw,calc(100dvh - 190px));max-width:none;margin:0}
-body.full .num{font-size:min(36vw,calc((100dvh - 190px)*.38))}
-body.full .num.small{font-size:min(24vw,calc((100dvh - 190px)*.26))}
-body.full .state{font-size:15px}
-body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
+/* ---- full screen while counting ---- */
+body.full{overflow:hidden}
+body.full .top,body.full .ctrl,body.full .settings,body.full .state{display:none}
+body.full .wrap{position:fixed;inset:0;max-width:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);display:flex;align-items:center;justify-content:center}
+body.full .dial{--d:min(94vw,94dvh);width:var(--d);max-width:none;margin:0}
+body.full .num{font-size:calc(var(--d)*.4)}
+body.full .num.small{font-size:calc(var(--d)*.27)}
+body.full.paused .num{opacity:.45}
+.menu{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-end;justify-content:center;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 28px);background:linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,0) 55%);opacity:0;pointer-events:none;transition:opacity .2s}
+.menu.show{opacity:1;pointer-events:auto}
+.menu .row{display:flex;gap:10px;width:100%;max-width:440px}
+.menu .btn{height:62px}
+.menu .btn:disabled{opacity:.3}
+.menu .btn.end{color:var(--sub)}
 @media (orientation:landscape){
-  body.full .wrap{flex-direction:row;align-items:center;gap:20px}
-  body.full .top{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 16px)}
-  body.full .dial{width:min(calc(100dvh - 40px),62vw)}
-  body.full .num{font-size:calc((100dvh - 40px)*.38)}
-  body.full .num.small{font-size:calc((100dvh - 40px)*.26)}
-  body.full .ctrl{flex-direction:column;width:200px;margin:0}
-  body.full .ctrl .btn{flex:none;height:64px}
-  body.full .stage{height:100%}
+  .menu{align-items:center;justify-content:flex-end;padding:0 calc(env(safe-area-inset-right,0px) + 24px) 0 0;background:linear-gradient(to left,rgba(0,0,0,.75),rgba(0,0,0,0) 55%)}
+  .menu .row{flex-direction:column;width:190px}
+  .menu .btn{flex:none}
 }
 </style>
 </head>
@@ -125,9 +120,6 @@ body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
 <main class="wrap">
   <div class="top">
     <div class="tag"><i></i><span id="modeTag">スポット</span></div>
-    <button class="icon" id="fullBtn" aria-label="全画面">
-      <svg id="fullIco" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
-    </button>
   </div>
 
   <div class="stage">
@@ -145,7 +137,6 @@ body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
   </div>
 
   <div class="ctrl">
-    <button class="btn" id="stopBtn" hidden>ストップ</button>
     <button class="btn main" id="mainBtn">スタート</button>
   </div>
 
@@ -178,13 +169,6 @@ body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
         <button data-v="both">両方</button>
       </div>
       <p class="note warn" id="vibeNote" hidden></p>
-      <div class="lab" style="margin-top:14px">音の種類 <span style="font-weight:500">（押すと鳴ります）</span></div>
-      <div class="snds" id="sndSeg">
-        <button data-v="pico">ぴこっ<small>短く2回はねる</small></button>
-        <button data-v="kira">きらりん<small>のぼっていく</small></button>
-        <button data-v="poyo">ぽよん<small>ふくらむ音</small></button>
-        <button data-v="chirin">ちりん<small>小さな鈴</small></button>
-      </div>
       <button class="test" id="testBtn">お知らせを試す</button>
     </div>
 
@@ -199,11 +183,18 @@ body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
     </div>
   </div>
 </main>
+<div class="menu" id="menu">
+  <div class="row">
+    <button class="btn" id="mStop">ストップ</button>
+    <button class="btn main" id="mResume">再開</button>
+    <button class="btn end" id="mEnd">終了</button>
+  </div>
+</div>
 
 <script>
 const $=id=>document.getElementById(id);
 const DEFAULTS=[10,20,30,45,60,90,120,180];
-const S={sec:30,mode:'spot',sig:'sound',mine:[],theme:'neon',snd:'pico'};
+const S={sec:30,mode:'spot',sig:'sound',mine:[],theme:'neon'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('countdown')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('countdown',JSON.stringify(S))}catch(e){}};
 const canVibe='vibrate' in navigator;
@@ -244,12 +235,12 @@ $('addBtn').onclick=()=>{const v=readCustom();if(v<=0){$('cSec').focus();return}
 function seg(id,key){
   $(id).querySelectorAll('button').forEach(b=>{
     b.setAttribute('aria-pressed',b.dataset.v===S[key]);
-    b.onclick=()=>{S[key]=b.dataset.v;save();syncAll();if(key==='snd')playSnd(false)};
+    b.onclick=()=>{S[key]=b.dataset.v;save();syncAll()};
   });
 }
 function syncAll(redrawChips=true){
   if(redrawChips)drawChips();else $('chips').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
-  seg('modeSeg','mode');seg('sigSeg','sig');seg('themes','theme');seg('sndSeg','snd');
+  seg('modeSeg','mode');seg('sigSeg','sig');seg('themes','theme');
   document.body.dataset.theme=S.theme;
   document.body.classList.toggle('loop',S.mode==='loop');
   $('modeTag').textContent=S.mode==='loop'?'ループ':'スポット';
@@ -267,19 +258,25 @@ const fsAPI=fsEl.requestFullscreen||fsEl.webkitRequestFullscreen;
 const fsNow=()=>document.fullscreenElement||document.webkitFullscreenElement;
 function setFull(on){
   document.body.classList.toggle('full',on);
-  $('fullIco').innerHTML=on?'<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>':'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>';
-  $('fullBtn').setAttribute('aria-label',on?'全画面をやめる':'全画面');
   window.scrollTo(0,0);
-}
-$('fullBtn').onclick=async()=>{
-  const on=!document.body.classList.contains('full');
-  setFull(on);
   try{
-    if(on&&fsAPI&&!fsNow())await fsAPI.call(fsEl);
-    else if(!on&&fsNow())await (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+    if(on&&fsAPI&&!fsNow())fsAPI.call(fsEl).catch(()=>{});
+    else if(!on&&fsNow())(document.exitFullscreen||document.webkitExitFullscreen).call(document).catch(()=>{});
   }catch(e){}
-};
-['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(!fsNow()&&document.body.classList.contains('full'))setFull(false)}));
+}
+let menuTimer;
+function showMenu(on){
+  clearTimeout(menuTimer);
+  $('menu').classList.toggle('show',on);
+  $('mStop').disabled=run.paused;$('mResume').disabled=!run.paused;
+  if(on&&!run.paused)menuTimer=setTimeout(()=>showMenu(false),4000);
+}
+// one tap anywhere on the counting screen brings up the buttons
+document.querySelector('.wrap').addEventListener('click',()=>{if(document.body.classList.contains('full')&&run.on)showMenu(true)});
+$('menu').addEventListener('click',e=>{if(e.target===$('menu')&&!run.paused)showMenu(false)});
+$('mStop').onclick=()=>{pause();showMenu(true)};
+$('mResume').onclick=()=>{resume();showMenu(false)};
+$('mEnd').onclick=()=>{showMenu(false);finish(false)};
 
 /* ---------- sound ---------- */
 let ac;
@@ -307,7 +304,7 @@ const SND={
   chirin:t=>{[0,.16].forEach(d=>{tone(3136,t+d,.6,.25);tone(6272,t+d,.35,.07);tone(4699,t+d,.4,.06)});return .8}
 };
 function playSnd(final){
-  let t=audio().currentTime+.02;const f=SND[S.snd]||SND.pico;
+  let t=audio().currentTime+.02;const f=SND.pico;
   for(let i=0;i<(final?3:1);i++)t+=f(t)+.08;
 }
 function signal(final){
@@ -356,27 +353,26 @@ function start(){
   audio();
   run.total=S.sec;run.on=true;run.paused=false;run.round=1;run.end=performance.now()+S.sec*1000;
   document.body.classList.add('running');document.body.classList.remove('done');
-  $('mainBtn').textContent='一時停止';$('stopBtn').hidden=false;
-  setState();wake(true);tick();
+  setFull(true);setState();wake(true);tick();
 }
 function pause(){
   run.paused=true;clearTimeout(run.raf);run.remain=run.end-performance.now();
-  $('mainBtn').textContent='再開';setState();wake(false);
+  setState();wake(false);
 }
 function resume(){
   audio();run.paused=false;run.end=performance.now()+run.remain;
-  $('mainBtn').textContent='一時停止';setState();wake(true);tick();
+  setFull(true);setState();wake(true);tick();
 }
 function finish(done){
   run.on=false;run.paused=false;clearTimeout(run.raf);wake(false);
   document.body.classList.remove('running','paused');document.body.classList.toggle('done',done);
-  $('mainBtn').textContent='スタート';$('stopBtn').hidden=true;
   paint(done?0:S.sec,done?0:1);
-  $('state').textContent=done?'おわり！':'スタートを押してね';
-  if(done)setTimeout(()=>{if(!run.on){document.body.classList.remove('done');paint(S.sec,1)}},1500);
+  $('state').textContent='スタートを押してね';
+  // spot finished: keep the 0 on screen briefly, then go back
+  if(done)setTimeout(()=>{if(!run.on){document.body.classList.remove('done');setFull(false);paint(S.sec,1)}},1800);
+  else setFull(false);
 }
-$('mainBtn').onclick=()=>{if(!run.on)start();else if(run.paused)resume();else pause()};
-$('stopBtn').onclick=()=>finish(false);
+$('mainBtn').onclick=e=>{e.stopPropagation();if(!run.on)start()};
 
 syncAll();
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
