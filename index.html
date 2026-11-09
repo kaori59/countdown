@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>カウントダウン</title>
+<meta name="theme-color" content="#f4efe7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="カウント">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f4efe7; --card:#fffdf9; --ink:#2f2a26; --sub:#8a8078; --line:#e4dbcf;
+  --accent:#e0663f; --accent-ink:#fff; --ring-bg:#e9e1d5; --loop:#3f7fa6;
+  --font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1b1917;--card:#262321;--ink:#f1ebe3;--sub:#a1978d;--line:#3a3532;--ring-bg:#35302c;--accent:#f07a52;--loop:#6fb0d6}
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+[hidden]{display:none!important}
+.wrap{max-width:440px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 24px)}
+
+/* ---- dial ---- */
+.dial{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:6px auto 4px}
+.dial svg{width:100%;height:100%;transform:rotate(-90deg)}
+.dial circle{fill:none;stroke-width:14}
+.dial .bg{stroke:var(--ring-bg)}
+.dial .fg{stroke:var(--accent);stroke-linecap:round;transition:stroke .3s}
+body.loop .dial .fg{stroke:var(--loop)}
+.dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.num{font-size:clamp(64px,22vw,92px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.num.small{font-size:clamp(48px,15vw,68px)}
+.state{margin-top:8px;color:var(--sub);font-size:14px;min-height:21px}
+.state b{color:var(--ink)}
+.flash{position:fixed;inset:0;pointer-events:none;background:var(--accent);opacity:0}
+body.loop .flash{background:var(--loop)}
+.flash.go{animation:fl .5s ease-out}
+@keyframes fl{0%{opacity:.35}100%{opacity:0}}
+
+/* ---- controls ---- */
+.ctrl{display:flex;gap:10px;margin:14px 0 20px}
+.btn{flex:1;padding:17px 10px;border-radius:16px;font-size:18px;font-weight:700;background:var(--card);border:2px solid var(--line)}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+body.loop .btn.main{background:var(--loop);border-color:var(--loop)}
+.btn:active{transform:scale(.98)}
+
+/* ---- settings ---- */
+.sec{margin-bottom:18px}
+.lab{font-size:13px;color:var(--sub);margin:0 2px 7px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 0;width:calc((100% - 24px)/4);border-radius:12px;background:var(--card);border:2px solid var(--line);font-weight:700;font-variant-numeric:tabular-nums}
+.chip[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.custom{display:flex;align-items:center;gap:6px;margin-top:10px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 10px}
+.custom span{color:var(--sub);font-size:14px;white-space:nowrap}
+.custom input{width:56px;padding:8px 6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}
+.custom input:focus{outline:none;border-color:var(--ink)}
+.custom .add{margin-left:auto;white-space:nowrap;padding:8px 10px;border-radius:10px;background:var(--bg);border:2px solid var(--line);font-size:13px;font-weight:700}
+.seg{display:flex;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:11px 4px;border-radius:10px;font-weight:700;color:var(--sub)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.seg button small{display:block;font-weight:400;font-size:11px;opacity:.8}
+.note{font-size:12px;color:var(--sub);margin:7px 2px 0;line-height:1.6}
+.note.warn{color:var(--accent)}
+.test{margin-top:8px;font-size:13px;color:var(--sub);text-decoration:underline;padding:4px 2px}
+body.running .settings{opacity:.4;pointer-events:none}
+.mine .chip{position:relative}
+</style>
+</head>
+<body>
+<div class="flash" id="flash"></div>
+<main class="wrap">
+  <div class="dial">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="bg" cx="60" cy="60" r="52"/>
+      <circle class="fg" id="ring" cx="60" cy="60" r="52"/>
+    </svg>
+    <div class="mid">
+      <div class="num" id="num">30</div>
+      <div class="state" id="state">スタートを押してね</div>
+    </div>
+  </div>
+
+  <div class="ctrl">
+    <button class="btn" id="stopBtn" hidden>ストップ</button>
+    <button class="btn main" id="mainBtn">スタート</button>
+  </div>
+
+  <div class="settings">
+    <div class="sec">
+      <div class="lab">カウント</div>
+      <div class="chips" id="chips"></div>
+      <div class="custom">
+        <span>自分で</span>
+        <input id="cMin" type="number" inputmode="numeric" min="0" max="99" placeholder="0" aria-label="分"><span>分</span>
+        <input id="cSec" type="number" inputmode="numeric" min="0" max="59" placeholder="0" aria-label="秒"><span>秒</span>
+        <button class="add" id="addBtn">追加</button>
+      </div>
+      <p class="note">長押しで、追加したボタンを消せます。</p>
+    </div>
+
+    <div class="sec">
+      <div class="lab">くりかえし</div>
+      <div class="seg" id="modeSeg">
+        <button data-v="spot">スポット<small>1回で終わり</small></button>
+        <button data-v="loop">ループ<small>止めるまで続く</small></button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="lab">区切りのお知らせ</div>
+      <div class="seg" id="sigSeg">
+        <button data-v="sound">音</button>
+        <button data-v="vibe">バイブ</button>
+        <button data-v="both">両方</button>
+      </div>
+      <p class="note warn" id="vibeNote" hidden></p>
+      <button class="test" id="testBtn">お知らせを試す</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const DEFAULTS=[10,20,30,45,60,90,120,180];
+const S={sec:30,mode:'spot',sig:'sound',mine:[]};
+try{Object.assign(S,JSON.parse(localStorage.getItem('countdown')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('countdown',JSON.stringify(S))}catch(e){}};
+const canVibe='vibrate' in navigator;
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+const fmt=s=>s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`:String(s);
+const label=s=>s>=60?(s%60?`${Math.floor(s/60)}分${s%60}秒`:`${s/60}分`):`${s}秒`;
+
+/* ---------- settings UI ---------- */
+function drawChips(){
+  const all=[...new Set([...DEFAULTS,...S.mine])].sort((a,b)=>a-b);
+  $('chips').innerHTML='';
+  all.forEach(v=>{
+    const b=document.createElement('button');
+    b.className='chip';b.textContent=fmt(v);b.setAttribute('aria-label',label(v));
+    b.setAttribute('aria-pressed',v===S.sec);
+    b.onclick=()=>{S.sec=v;save();syncAll()};
+    if(S.mine.includes(v)&&!DEFAULTS.includes(v)){
+      let t;b.addEventListener('pointerdown',()=>{t=setTimeout(()=>{if(confirm(`${label(v)} のボタンを消しますか？`)){S.mine=S.mine.filter(x=>x!==v);save();drawChips()}},650)});
+      ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(t)));
+    }
+    $('chips').appendChild(b);
+  });
+}
+function readCustom(){
+  const m=Math.max(0,Math.min(99,parseInt($('cMin').value)||0));
+  const s=Math.max(0,Math.min(59,parseInt($('cSec').value)||0));
+  return m*60+s;
+}
+['cMin','cSec'].forEach(id=>$(id).addEventListener('input',()=>{const v=readCustom();if(v>0){S.sec=v;save();syncAll(false)}}));
+$('addBtn').onclick=()=>{const v=readCustom();if(v<=0){$('cSec').focus();return}
+  if(!S.mine.includes(v)&&!DEFAULTS.includes(v))S.mine.push(v);S.sec=v;save();$('cMin').value='';$('cSec').value='';syncAll()};
+function seg(id,key){
+  $(id).querySelectorAll('button').forEach(b=>{
+    b.setAttribute('aria-pressed',b.dataset.v===S[key]);
+    b.onclick=()=>{S[key]=b.dataset.v;save();syncAll()};
+  });
+}
+function syncAll(redrawChips=true){
+  if(redrawChips)drawChips();else $('chips').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+  seg('modeSeg','mode');seg('sigSeg','sig');
+  document.body.classList.toggle('loop',S.mode==='loop');
+  const vn=$('vibeNote');
+  if(S.sig!=='sound'&&!canVibe){vn.hidden=false;vn.textContent=isIOS?'iPhone・iPad のネットのアプリはバイブが使えません。音でお知らせします。':'この機器ではバイブが使えません。音でお知らせします。'}
+  else vn.hidden=true;
+  if(!run.on)paint(S.sec,1);
+}
+
+/* ---------- sound ---------- */
+let ac;
+function audio(){
+  if(!ac){
+    try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+  }
+  if(ac.state==='suspended')ac.resume();
+  return ac;
+}
+function tone(freq,at,len,vol=.5){
+  const a=audio(),o=a.createOscillator(),g=a.createGain();
+  o.type='sine';o.frequency.value=freq;o.connect(g);g.connect(a.destination);
+  g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(vol,at+.01);g.gain.exponentialRampToValueAtTime(.001,at+len);
+  o.start(at);o.stop(at+len+.05);
+}
+function signal(final){
+  const wantSound=S.sig!=='vibe'||!canVibe, wantVibe=S.sig!=='sound'&&canVibe;
+  if(wantSound){const t=audio().currentTime+.02;
+    if(final){tone(880,t,.18);tone(880,t+.25,.18);tone(1175,t+.5,.5)}
+    else{tone(1046,t,.15);tone(1568,t+.16,.35)}}
+  if(wantVibe)navigator.vibrate(final?[300,150,300,150,600]:[400,120,400]);
+  const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');
+}
+$('testBtn').onclick=()=>signal(false);
+
+/* ---------- timer ---------- */
+const C=2*Math.PI*52;$('ring').style.strokeDasharray=C;
+function paint(left,frac){
+  const n=$('num'),sec=Math.ceil(left);
+  n.textContent=fmt(sec);n.classList.toggle('small',sec>=600);
+  $('ring').style.strokeDashoffset=C*(1-frac);
+}
+const run={on:false,paused:false,end:0,remain:0,round:1,raf:0};
+let lock=null;
+async function wake(on){
+  try{if(on&&'wakeLock' in navigator&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}
+      else if(!on&&lock){await lock.release();lock=null}}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&run.on&&!run.paused)wake(true)});
+
+function setState(){
+  const st=$('state');
+  if(!run.on){st.textContent='スタートを押してね';return}
+  const r=S.mode==='loop'?`<b>${run.round}</b>回目　`:'';
+  st.innerHTML=r+(run.paused?'一時停止中':(S.mode==='loop'?'ループ中':'カウント中'));
+}
+function tick(){
+  if(!run.on||run.paused)return;
+  const now=performance.now();
+  // catch up on any rounds that passed while the screen was hidden
+  while(now>=run.end){
+    if(S.mode==='loop'){run.round++;run.end+=run.total*1000;signal(false);setState()}
+    else{signal(true);finish(true);return}
+  }
+  const left=(run.end-now)/1000;
+  paint(left,left/run.total);
+  clearTimeout(run.raf);run.raf=setTimeout(tick,50);
+}
+function start(){
+  audio();
+  run.total=S.sec;run.on=true;run.paused=false;run.round=1;run.end=performance.now()+S.sec*1000;
+  document.body.classList.add('running');
+  $('mainBtn').textContent='一時停止';$('stopBtn').hidden=false;
+  setState();wake(true);tick();
+}
+function pause(){
+  run.paused=true;clearTimeout(run.raf);run.remain=run.end-performance.now();
+  $('mainBtn').textContent='再開';setState();wake(false);
+}
+function resume(){
+  audio();run.paused=false;run.end=performance.now()+run.remain;
+  $('mainBtn').textContent='一時停止';setState();wake(true);tick();
+}
+function finish(done){
+  run.on=false;run.paused=false;clearTimeout(run.raf);wake(false);
+  document.body.classList.remove('running');
+  $('mainBtn').textContent='スタート';$('stopBtn').hidden=true;
+  paint(done?0:S.sec,done?0:1);
+  $('state').textContent=done?'おわり！':'スタートを押してね';
+  if(done)setTimeout(()=>{if(!run.on)paint(S.sec,1)},1500);
+}
+$('mainBtn').onclick=()=>{if(!run.on)start();else if(run.paused)resume();else pause()};
+$('stopBtn').onclick=()=>finish(false);
+
+syncAll();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
