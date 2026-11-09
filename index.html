@@ -4,88 +4,139 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>カウントダウン</title>
-<meta name="theme-color" content="#f4efe7">
+<meta name="theme-color" content="#0a0b0d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="カウント">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f4efe7; --card:#fffdf9; --ink:#2f2a26; --sub:#8a8078; --line:#e4dbcf;
-  --accent:#e0663f; --accent-ink:#fff; --ring-bg:#e9e1d5; --loop:#3f7fa6;
+  --bg:#0a0b0d; --panel:#14161a; --panel2:#1c1f24; --line:#262a31; --ink:#f2f4f6; --sub:#7d848e;
+  --a:#c8ff2e; --a-ink:#0a0b0d; --b:#2ee6ff; --b-ink:#0a0b0d; --tick:#2a2f37;
+  --num:"Oswald","Bahnschrift","DIN Alternate","Arial Narrow",sans-serif;
   --font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;
 }
-@media (prefers-color-scheme:dark){
-  :root{--bg:#1b1917;--card:#262321;--ink:#f1ebe3;--sub:#a1978d;--line:#3a3532;--ring-bg:#35302c;--accent:#f07a52;--loop:#6fb0d6}
-}
+body[data-theme=red]{--bg:#0d0b0b;--panel:#171313;--panel2:#201a1a;--line:#2e2525;--a:#ff3b2f;--a-ink:#fff;--b:#ffb21a;--b-ink:#0d0b0b;--tick:#332828}
+body[data-theme=ice]{--bg:#070b14;--panel:#0f1522;--panel2:#16203a;--line:#1f2a42;--sub:#7a8aa8;--a:#e9f1ff;--a-ink:#070b14;--b:#5aa9ff;--b-ink:#070b14;--tick:#1d2840}
+body{--c:var(--a);--c-ink:var(--a-ink)}
+body.loop{--c:var(--b);--c-ink:var(--b-ink)}
+
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 html{background:var(--bg)}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-user-select:none;user-select:none;transition:background .3s}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
 [hidden]{display:none!important}
-.wrap{max-width:440px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 24px)}
+.wrap{max-width:440px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px calc(env(safe-area-inset-bottom,0px) + 24px)}
+
+/* ---- top bar ---- */
+.top{display:flex;align-items:center;justify-content:space-between;height:40px}
+.tag{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--sub)}
+.tag i{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+body.running:not(.paused) .tag i{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line)}
+.icon svg{width:20px;height:20px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---- dial ---- */
-.dial{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:6px auto 4px}
-.dial svg{width:100%;height:100%;transform:rotate(-90deg)}
-.dial circle{fill:none;stroke-width:14}
-.dial .bg{stroke:var(--ring-bg)}
-.dial .fg{stroke:var(--accent);stroke-linecap:round;transition:stroke .3s}
-body.loop .dial .fg{stroke:var(--loop)}
-.dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.num{font-size:clamp(64px,22vw,92px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.num.small{font-size:clamp(48px,15vw,68px)}
-.state{margin-top:8px;color:var(--sub);font-size:14px;min-height:21px}
-.state b{color:var(--ink)}
-.flash{position:fixed;inset:0;pointer-events:none;background:var(--accent);opacity:0}
-body.loop .flash{background:var(--loop)}
-.flash.go{animation:fl .5s ease-out}
-@keyframes fl{0%{opacity:.35}100%{opacity:0}}
+.dial{position:relative;width:min(84vw,330px);aspect-ratio:1;margin:4px auto 0}
+.dial svg.r{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.ticks line{stroke:var(--tick);stroke-width:1.2}
+.ticks line.big{stroke:var(--sub);stroke-width:1.6}
+.track{fill:none;stroke:var(--panel2);stroke-width:7}
+.fg{fill:none;stroke:var(--c);stroke-width:7;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--c))}
+.mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.num{font-family:var(--num);font-weight:700;font-size:clamp(84px,30vw,124px);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.num.small{font-size:clamp(60px,20vw,88px)}
+.state{margin-top:10px;font-size:13px;color:var(--sub);min-height:20px;font-weight:600}
+.state b{color:var(--c);font-family:var(--num);font-size:16px;font-weight:500;margin-right:2px}
+body.done .num{color:var(--c)}
+.flash{position:fixed;inset:0;pointer-events:none;background:var(--c);opacity:0;z-index:20}
+.flash.go{animation:fl .55s ease-out}
+@keyframes fl{0%{opacity:.4}100%{opacity:0}}
 
 /* ---- controls ---- */
-.ctrl{display:flex;gap:10px;margin:14px 0 20px}
-.btn{flex:1;padding:17px 10px;border-radius:16px;font-size:18px;font-weight:700;background:var(--card);border:2px solid var(--line)}
-.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-body.loop .btn.main{background:var(--loop);border-color:var(--loop)}
+.ctrl{display:flex;gap:10px;margin:18px 0 22px}
+.btn{flex:1;height:60px;border-radius:16px;font-size:18px;font-weight:800;letter-spacing:.04em;background:var(--panel);border:1px solid var(--line)}
+.btn.main{background:var(--c);border-color:var(--c);color:var(--c-ink);box-shadow:0 6px 24px -8px var(--c)}
 .btn:active{transform:scale(.98)}
 
 /* ---- settings ---- */
+.settings{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:16px 14px 6px}
 .sec{margin-bottom:18px}
-.lab{font-size:13px;color:var(--sub);margin:0 2px 7px;font-weight:600}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{padding:10px 0;width:calc((100% - 24px)/4);border-radius:12px;background:var(--card);border:2px solid var(--line);font-weight:700;font-variant-numeric:tabular-nums}
-.chip[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
-.custom{display:flex;align-items:center;gap:6px;margin-top:10px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 10px}
-.custom span{color:var(--sub);font-size:14px;white-space:nowrap}
-.custom input{width:56px;padding:8px 6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}
-.custom input:focus{outline:none;border-color:var(--ink)}
-.custom .add{margin-left:auto;white-space:nowrap;padding:8px 10px;border-radius:10px;background:var(--bg);border:2px solid var(--line);font-size:13px;font-weight:700}
-.seg{display:flex;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:4px;gap:4px}
-.seg button{flex:1;padding:11px 4px;border-radius:10px;font-weight:700;color:var(--sub)}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
-.seg button small{display:block;font-weight:400;font-size:11px;opacity:.8}
+.lab{font-size:12px;color:var(--sub);margin:0 2px 8px;font-weight:700;letter-spacing:.06em}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.chip{height:46px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-family:var(--num);font-size:19px;font-weight:500}
+.chip[aria-pressed=true]{background:var(--c);border-color:var(--c);color:var(--c-ink)}
+.custom{display:flex;align-items:center;gap:6px;margin-top:10px}
+.custom span{color:var(--sub);font-size:13px;white-space:nowrap}
+.custom input{width:60px;height:46px;border:1px solid var(--line);border-radius:12px;background:var(--bg);text-align:center;font-family:var(--num);font-size:22px;-webkit-user-select:text;user-select:text;-moz-appearance:textfield}
+.custom input::-webkit-inner-spin-button{-webkit-appearance:none}
+.custom input:focus{outline:none;border-color:var(--c)}
+.custom .add{margin-left:auto;height:46px;padding:0 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:700;white-space:nowrap}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:10px 4px;border-radius:10px;font-weight:800;color:var(--sub)}
+.seg button[aria-pressed=true]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--c)}
+.seg button small{display:block;font-weight:500;font-size:11px;opacity:.75}
 .note{font-size:12px;color:var(--sub);margin:7px 2px 0;line-height:1.6}
-.note.warn{color:var(--accent)}
-.test{margin-top:8px;font-size:13px;color:var(--sub);text-decoration:underline;padding:4px 2px}
-body.running .settings{opacity:.4;pointer-events:none}
-.mine .chip{position:relative}
+.note.warn{color:var(--c)}
+.test{margin-top:6px;font-size:13px;color:var(--sub);text-decoration:underline;text-underline-offset:3px;padding:4px 2px}
+.themes{display:flex;gap:10px}
+.sw{flex:1;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--bg);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;color:var(--sub)}
+.sw i{width:14px;height:14px;border-radius:50%}
+.sw[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
+body.running .settings{opacity:.35;pointer-events:none}
+
+/* ---- full screen ---- */
+body.full .settings,body.full .tag{display:none}
+body.full .wrap{max-width:none;height:100dvh;display:flex;flex-direction:column;padding-left:calc(env(safe-area-inset-left,0px) + 16px);padding-right:calc(env(safe-area-inset-right,0px) + 16px)}
+body.full .top{justify-content:flex-end}
+body.full .stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+body.full .dial{width:min(92vw,calc(100dvh - 190px));max-width:none;margin:0}
+body.full .num{font-size:min(36vw,calc((100dvh - 190px)*.38))}
+body.full .num.small{font-size:min(24vw,calc((100dvh - 190px)*.26))}
+body.full .state{font-size:15px}
+body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
+@media (orientation:landscape){
+  body.full .wrap{flex-direction:row;align-items:center;gap:20px}
+  body.full .top{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 16px)}
+  body.full .dial{width:min(calc(100dvh - 40px),62vw)}
+  body.full .num{font-size:calc((100dvh - 40px)*.38)}
+  body.full .num.small{font-size:calc((100dvh - 40px)*.26)}
+  body.full .ctrl{flex-direction:column;width:200px;margin:0}
+  body.full .ctrl .btn{flex:none;height:64px}
+  body.full .stage{height:100%}
+}
 </style>
 </head>
-<body>
+<body data-theme="neon">
 <div class="flash" id="flash"></div>
 <main class="wrap">
-  <div class="dial">
-    <svg viewBox="0 0 120 120" aria-hidden="true">
-      <circle class="bg" cx="60" cy="60" r="52"/>
-      <circle class="fg" id="ring" cx="60" cy="60" r="52"/>
-    </svg>
-    <div class="mid">
-      <div class="num" id="num">30</div>
-      <div class="state" id="state">スタートを押してね</div>
+  <div class="top">
+    <div class="tag"><i></i><span id="modeTag">スポット</span></div>
+    <button class="icon" id="fullBtn" aria-label="全画面">
+      <svg id="fullIco" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+
+  <div class="stage">
+    <div class="dial">
+      <svg class="r" viewBox="0 0 200 200" aria-hidden="true">
+        <g class="ticks" id="ticks"></g>
+        <circle class="track" cx="100" cy="100" r="78"/>
+        <circle class="fg" id="ring" cx="100" cy="100" r="78"/>
+      </svg>
+      <div class="mid">
+        <div class="num" id="num">30</div>
+        <div class="state" id="state">スタートを押してね</div>
+      </div>
     </div>
   </div>
 
@@ -125,13 +176,23 @@ body.running .settings{opacity:.4;pointer-events:none}
       <p class="note warn" id="vibeNote" hidden></p>
       <button class="test" id="testBtn">お知らせを試す</button>
     </div>
+
+    <div class="sec">
+      <div class="lab">カラー</div>
+      <div class="themes" id="themes">
+        <button class="sw" data-v="neon"><i style="background:#c8ff2e"></i><i style="background:#2ee6ff"></i></button>
+        <button class="sw" data-v="red"><i style="background:#ff3b2f"></i><i style="background:#ffb21a"></i></button>
+        <button class="sw" data-v="ice"><i style="background:#e9f1ff"></i><i style="background:#5aa9ff"></i></button>
+      </div>
+      <p class="note">左の色がスポット、右の色がループのときの色です。</p>
+    </div>
   </div>
 </main>
 
 <script>
 const $=id=>document.getElementById(id);
 const DEFAULTS=[10,20,30,45,60,90,120,180];
-const S={sec:30,mode:'spot',sig:'sound',mine:[]};
+const S={sec:30,mode:'spot',sig:'sound',mine:[],theme:'neon'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('countdown')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('countdown',JSON.stringify(S))}catch(e){}};
 const canVibe='vibrate' in navigator;
@@ -139,6 +200,11 @@ const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='M
 
 const fmt=s=>s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`:String(s);
 const label=s=>s>=60?(s%60?`${Math.floor(s/60)}分${s%60}秒`:`${s/60}分`):`${s}秒`;
+
+/* ---------- dial ticks ---------- */
+(()=>{let h='';for(let i=0;i<60;i++){const a=i/60*2*Math.PI,big=i%5===0,r1=big?88:90,r2=95;
+  h+=`<line ${big?'class="big" ':''}x1="${100+r1*Math.cos(a)}" y1="${100+r1*Math.sin(a)}" x2="${100+r2*Math.cos(a)}" y2="${100+r2*Math.sin(a)}"/>`}
+  $('ticks').innerHTML=h})();
 
 /* ---------- settings UI ---------- */
 function drawChips(){
@@ -172,13 +238,37 @@ function seg(id,key){
 }
 function syncAll(redrawChips=true){
   if(redrawChips)drawChips();else $('chips').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
-  seg('modeSeg','mode');seg('sigSeg','sig');
+  seg('modeSeg','mode');seg('sigSeg','sig');seg('themes','theme');
+  document.body.dataset.theme=S.theme;
   document.body.classList.toggle('loop',S.mode==='loop');
+  $('modeTag').textContent=S.mode==='loop'?'ループ':'スポット';
   const vn=$('vibeNote');
   if(S.sig!=='sound'&&!canVibe){vn.hidden=false;vn.textContent=isIOS?'iPhone・iPad のネットのアプリはバイブが使えません。音でお知らせします。':'この機器ではバイブが使えません。音でお知らせします。'}
   else vn.hidden=true;
+  const bg=getComputedStyle(document.body).getPropertyValue('--bg').trim();
+  document.querySelector('meta[name=theme-color]').content=bg;
   if(!run.on)paint(S.sec,1);
 }
+
+/* ---------- full screen ---------- */
+const fsEl=document.documentElement;
+const fsAPI=fsEl.requestFullscreen||fsEl.webkitRequestFullscreen;
+const fsNow=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function setFull(on){
+  document.body.classList.toggle('full',on);
+  $('fullIco').innerHTML=on?'<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>':'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>';
+  $('fullBtn').setAttribute('aria-label',on?'全画面をやめる':'全画面');
+  window.scrollTo(0,0);
+}
+$('fullBtn').onclick=async()=>{
+  const on=!document.body.classList.contains('full');
+  setFull(on);
+  try{
+    if(on&&fsAPI&&!fsNow())await fsAPI.call(fsEl);
+    else if(!on&&fsNow())await (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+  }catch(e){}
+};
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(!fsNow()&&document.body.classList.contains('full'))setFull(false)}));
 
 /* ---------- sound ---------- */
 let ac;
@@ -207,7 +297,7 @@ function signal(final){
 $('testBtn').onclick=()=>signal(false);
 
 /* ---------- timer ---------- */
-const C=2*Math.PI*52;$('ring').style.strokeDasharray=C;
+const C=2*Math.PI*78;$('ring').style.strokeDasharray=C;
 function paint(left,frac){
   const n=$('num'),sec=Math.ceil(left);
   n.textContent=fmt(sec);n.classList.toggle('small',sec>=600);
@@ -223,6 +313,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 function setState(){
   const st=$('state');
+  document.body.classList.toggle('paused',run.paused);
   if(!run.on){st.textContent='スタートを押してね';return}
   const r=S.mode==='loop'?`<b>${run.round}</b>回目　`:'';
   st.innerHTML=r+(run.paused?'一時停止中':(S.mode==='loop'?'ループ中':'カウント中'));
@@ -242,7 +333,7 @@ function tick(){
 function start(){
   audio();
   run.total=S.sec;run.on=true;run.paused=false;run.round=1;run.end=performance.now()+S.sec*1000;
-  document.body.classList.add('running');
+  document.body.classList.add('running');document.body.classList.remove('done');
   $('mainBtn').textContent='一時停止';$('stopBtn').hidden=false;
   setState();wake(true);tick();
 }
@@ -256,11 +347,11 @@ function resume(){
 }
 function finish(done){
   run.on=false;run.paused=false;clearTimeout(run.raf);wake(false);
-  document.body.classList.remove('running');
+  document.body.classList.remove('running','paused');document.body.classList.toggle('done',done);
   $('mainBtn').textContent='スタート';$('stopBtn').hidden=true;
   paint(done?0:S.sec,done?0:1);
   $('state').textContent=done?'おわり！':'スタートを押してね';
-  if(done)setTimeout(()=>{if(!run.on)paint(S.sec,1)},1500);
+  if(done)setTimeout(()=>{if(!run.on){document.body.classList.remove('done');paint(S.sec,1)}},1500);
 }
 $('mainBtn').onclick=()=>{if(!run.on)start();else if(run.paused)resume();else pause()};
 $('stopBtn').onclick=()=>finish(false);
