@@ -18,7 +18,7 @@
 <style>
 :root{
   --bg:#0a0b0d; --panel:#14161a; --panel2:#1c1f24; --line:#262a31; --ink:#f2f4f6; --sub:#7d848e;
-  --a:#c8ff2e; --a-ink:#0a0b0d; --b:#2ee6ff; --b-ink:#0a0b0d; --tick:#2a2f37;
+  --a:#c8ff2e; --a-ink:#0a0b0d; --b:#ff4fb8; --b-ink:#0a0b0d; --tick:#2a2f37;
   --num:"Oswald","Bahnschrift","DIN Alternate","Arial Narrow",sans-serif;
   --font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;
 }
@@ -88,6 +88,10 @@ body.done .num{color:var(--c)}
 .note{font-size:12px;color:var(--sub);margin:7px 2px 0;line-height:1.6}
 .note.warn{color:var(--c)}
 .test{margin-top:6px;font-size:13px;color:var(--sub);text-decoration:underline;text-underline-offset:3px;padding:4px 2px}
+.snds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.snds button{padding:10px 6px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-weight:800;color:var(--sub)}
+.snds button small{display:block;font-weight:500;font-size:11px;opacity:.75}
+.snds button[aria-pressed=true]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--c)}
 .themes{display:flex;gap:10px}
 .sw{flex:1;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--bg);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;color:var(--sub)}
 .sw i{width:14px;height:14px;border-radius:50%}
@@ -174,13 +178,20 @@ body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
         <button data-v="both">両方</button>
       </div>
       <p class="note warn" id="vibeNote" hidden></p>
+      <div class="lab" style="margin-top:14px">音の種類 <span style="font-weight:500">（押すと鳴ります）</span></div>
+      <div class="snds" id="sndSeg">
+        <button data-v="pico">ぴこっ<small>短く2回はねる</small></button>
+        <button data-v="kira">きらりん<small>のぼっていく</small></button>
+        <button data-v="poyo">ぽよん<small>ふくらむ音</small></button>
+        <button data-v="chirin">ちりん<small>小さな鈴</small></button>
+      </div>
       <button class="test" id="testBtn">お知らせを試す</button>
     </div>
 
     <div class="sec">
       <div class="lab">カラー</div>
       <div class="themes" id="themes">
-        <button class="sw" data-v="neon"><i style="background:#c8ff2e"></i><i style="background:#2ee6ff"></i></button>
+        <button class="sw" data-v="neon"><i style="background:#c8ff2e"></i><i style="background:#ff4fb8"></i></button>
         <button class="sw" data-v="red"><i style="background:#ff3b2f"></i><i style="background:#ffb21a"></i></button>
         <button class="sw" data-v="ice"><i style="background:#e9f1ff"></i><i style="background:#5aa9ff"></i></button>
       </div>
@@ -192,7 +203,7 @@ body.full .ctrl{width:100%;max-width:440px;margin:10px auto 0}
 <script>
 const $=id=>document.getElementById(id);
 const DEFAULTS=[10,20,30,45,60,90,120,180];
-const S={sec:30,mode:'spot',sig:'sound',mine:[],theme:'neon'};
+const S={sec:30,mode:'spot',sig:'sound',mine:[],theme:'neon',snd:'pico'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('countdown')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('countdown',JSON.stringify(S))}catch(e){}};
 const canVibe='vibrate' in navigator;
@@ -233,12 +244,12 @@ $('addBtn').onclick=()=>{const v=readCustom();if(v<=0){$('cSec').focus();return}
 function seg(id,key){
   $(id).querySelectorAll('button').forEach(b=>{
     b.setAttribute('aria-pressed',b.dataset.v===S[key]);
-    b.onclick=()=>{S[key]=b.dataset.v;save();syncAll()};
+    b.onclick=()=>{S[key]=b.dataset.v;save();syncAll();if(key==='snd')playSnd(false)};
   });
 }
 function syncAll(redrawChips=true){
   if(redrawChips)drawChips();else $('chips').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
-  seg('modeSeg','mode');seg('sigSeg','sig');seg('themes','theme');
+  seg('modeSeg','mode');seg('sigSeg','sig');seg('themes','theme');seg('sndSeg','snd');
   document.body.dataset.theme=S.theme;
   document.body.classList.toggle('loop',S.mode==='loop');
   $('modeTag').textContent=S.mode==='loop'?'ループ':'スポット';
@@ -280,17 +291,28 @@ function audio(){
   if(ac.state==='suspended')ac.resume();
   return ac;
 }
-function tone(freq,at,len,vol=.5){
+function tone(freq,at,len,vol=.5,type='sine',to){
   const a=audio(),o=a.createOscillator(),g=a.createGain();
-  o.type='sine';o.frequency.value=freq;o.connect(g);g.connect(a.destination);
-  g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(vol,at+.01);g.gain.exponentialRampToValueAtTime(.001,at+len);
+  o.type=type;o.frequency.setValueAtTime(freq,at);
+  if(to)o.frequency.exponentialRampToValueAtTime(to,at+len*.6);
+  o.connect(g);g.connect(a.destination);
+  g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(vol,at+.008);g.gain.exponentialRampToValueAtTime(.001,at+len);
   o.start(at);o.stop(at+len+.05);
+}
+// cute, high-pitched signals; each returns its length in seconds
+const SND={
+  pico:t=>{tone(1760,t,.09,.35,'triangle',2350);tone(2350,t+.12,.13,.35,'triangle',3140);return .3},
+  kira:t=>{[2093,2637,3136,4186].forEach((f,i)=>tone(f,t+i*.07,i===3?.5:.18,.28));return .7},
+  poyo:t=>{tone(1100,t,.22,.45,'sine',2200);tone(1320,t+.2,.28,.4,'sine',2640);return .5},
+  chirin:t=>{[0,.16].forEach(d=>{tone(3136,t+d,.6,.25);tone(6272,t+d,.35,.07);tone(4699,t+d,.4,.06)});return .8}
+};
+function playSnd(final){
+  let t=audio().currentTime+.02;const f=SND[S.snd]||SND.pico;
+  for(let i=0;i<(final?3:1);i++)t+=f(t)+.08;
 }
 function signal(final){
   const wantSound=S.sig!=='vibe'||!canVibe, wantVibe=S.sig!=='sound'&&canVibe;
-  if(wantSound){const t=audio().currentTime+.02;
-    if(final){tone(880,t,.18);tone(880,t+.25,.18);tone(1175,t+.5,.5)}
-    else{tone(1046,t,.15);tone(1568,t+.16,.35)}}
+  if(wantSound)playSnd(final);
   if(wantVibe)navigator.vibrate(final?[300,150,300,150,600]:[400,120,400]);
   const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');
 }
